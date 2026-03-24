@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trò Chơi Phân Loại Thiết Bị</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f4f8;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+        }
+        h1 { color: #2c3e50; }
+        .game-board {
+            display: flex;
+            justify-content: center;
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+        .drop-zone {
+            width: 300px;
+            min-height: 250px;
+            background-color: #ffffff;
+            border: 2px dashed #bdc3c7;
+            border-radius: 10px;
+            padding: 15px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+            transition: background-color 0.2s;
+        }
+        .drop-zone.hover { background-color: #e8f4fd; border-color: #3498db; }
+        .drop-zone h3 {
+            margin-top: 0;
+            color: #2980b9;
+            border-bottom: 2px solid #ecf0f1;
+            padding-bottom: 10px;
+        }
+        .item-pool {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 15px;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 10px;
+            min-height: 80px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        }
+        .draggable-item {
+            background-color: #34495e;
+            color: white;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: grab;
+            user-select: none;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+        }
+        .draggable-item:active { cursor: grabbing; }
+        .correct { background-color: #27ae60 !important; }
+        .incorrect { background-color: #e74c3c !important; }
+        .controls { margin-top: 20px; }
+        button {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            font-size: 16px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-weight: bold;
+        }
+        button:hover { background-color: #2980b9; }
+        #result-message {
+            margin-top: 15px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Kéo Thả: Đâu là thiết bị thông minh?</h1>
+    
+    <div class="game-board">
+        <div class="drop-zone" id="smart-zone">
+            <h3>Thiết bị thông minh</h3>
+            </div>
+        
+        <div class="drop-zone" id="non-smart-zone">
+            <h3>Không là thiết bị thông minh</h3>
+            </div>
+    </div>
+
+    <h3>Danh sách thiết bị:</h3>
+    <div class="item-pool" id="pool-zone">
+        <div class="draggable-item" draggable="true" id="item1" data-type="smart">📱 Smartphone</div>
+        <div class="draggable-item" draggable="true" id="item2" data-type="smart">💻 Máy tính bảng</div>
+        <div class="draggable-item" draggable="true" id="item3" data-type="smart">📹 Camera Internet</div>
+        <div class="draggable-item" draggable="true" id="item4" data-type="smart">⌚ Đồng hồ thông minh</div>
+        <div class="draggable-item" draggable="true" id="item5" data-type="smart">📺 Smart TV</div>
+        
+        <div class="draggable-item" draggable="true" id="item6" data-type="non-smart">🕰️ Đồng hồ cơ học</div>
+        <div class="draggable-item" draggable="true" id="item7" data-type="non-smart">☎️ Điện thoại bàn cũ</div>
+        <div class="draggable-item" draggable="true" id="item8" data-type="non-smart">💡 Bóng đèn sợi đốt</div>
+        <div class="draggable-item" draggable="true" id="item9" data-type="non-smart">🧮 Bàn tính</div>
+        <div class="draggable-item" draggable="true" id="item10" data-type="non-smart">📻 Đài Radio Analog</div>
+    </div>
+
+    <div class="controls">
+        <button onclick="checkAnswers()">Kiểm tra kết quả</button>
+        <button onclick="resetGame()" style="background-color: #7f8c8d; margin-left: 10px;">Chơi lại</button>
+        <div id="result-message"></div>
+    </div>
+
+    <script>
+        const draggables = document.querySelectorAll('.draggable-item');
+        const dropZones = document.querySelectorAll('.drop-zone, .item-pool');
+
+        draggables.forEach(draggable => {
+            draggable.addEventListener('dragstart', () => {
+                draggable.classList.add('dragging');
+                // Clean up previous validation colors if dragged again
+                draggable.classList.remove('correct', 'incorrect');
+            });
+
+            draggable.addEventListener('dragend', () => {
+                draggable.classList.remove('dragging');
+            });
+        });
+
+        dropZones.forEach(zone => {
+            zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                if(zone.classList.contains('drop-zone')) {
+                    zone.classList.add('hover');
+                }
+            });
+
+            zone.addEventListener('dragleave', () => {
+                zone.classList.remove('hover');
+            });
+
+            zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('hover');
+                const draggable = document.querySelector('.dragging');
+                if (draggable) {
+                    zone.appendChild(draggable);
+                }
+            });
+        });
+
+        function checkAnswers() {
+            let allCorrect = true;
+            let totalPlaced = 0;
+
+            draggables.forEach(item => {
+                const itemType = item.getAttribute('data-type');
+                const parentId = item.parentElement.id;
+
+                if (parentId === 'smart-zone' || parentId === 'non-smart-zone') {
+                    totalPlaced++;
+                    if ((itemType === 'smart' && parentId === 'smart-zone') || 
+                        (itemType === 'non-smart' && parentId === 'non-smart-zone')) {
+                        item.classList.add('correct');
+                        item.classList.remove('incorrect');
+                    } else {
+                        item.classList.add('incorrect');
+                        item.classList.remove('correct');
+                        allCorrect = false;
+                    }
+                }
+            });
+
+            const resultMsg = document.getElementById('result-message');
+            if (totalPlaced < 10) {
+                resultMsg.style.color = '#e67e22';
+                resultMsg.innerText = "Vui lòng phân loại tất cả các thiết bị trước khi kiểm tra!";
+            } else if (allCorrect) {
+                resultMsg.style.color = '#27ae60';
+                resultMsg.innerText = "Chúc mừng! Bạn đã phân loại chính xác hoàn toàn.";
+            } else {
+                resultMsg.style.color = '#e74c3c';
+                resultMsg.innerText = "Vẫn còn một vài thiết bị chưa đúng vị trí (màu đỏ). Hãy thử lại nhé!";
+            }
+        }
+
+        function resetGame() {
+            const pool = document.getElementById('pool-zone');
+            draggables.forEach(item => {
+                item.classList.remove('correct', 'incorrect');
+                pool.appendChild(item);
+            });
+            document.getElementById('result-message').innerText = "";
+        }
+    </script>
+</body>
+</html>
